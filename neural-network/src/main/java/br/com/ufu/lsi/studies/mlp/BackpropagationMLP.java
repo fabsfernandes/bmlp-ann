@@ -10,7 +10,7 @@ import br.com.ufu.lsi.studies.util.RandomGenerator;
 
 public class BackpropagationMLP {
 
-	private static final Double LEARNING_RATE = 0.3;
+	private static final Double LEARNING_RATE = 2.0;
 	// private static final Double INITIAL_BIASES = 0.9;
 	// private static final Double INITIAL_WEIGHTS = 0.05;
 	private static final int EPOCHS = 2000;
@@ -34,7 +34,7 @@ public class BackpropagationMLP {
 
 	public static void main( String... args ) {
 
-		BackpropagationMLP mlp = new BackpropagationMLP( 2, 3, 1 );
+		BackpropagationMLP mlp = new BackpropagationMLP( 2, 2, 1 );
 
 		// build input set
 		List<NetworkData> data = mlp.setupTrainingSet();
@@ -187,7 +187,7 @@ public class BackpropagationMLP {
 			Neuron neuron = outpuLayer.getNeurons().get( i );
 			Double desired = sample.getOutput().get( i );
 			Double obtained = neuron.getActivationValue();
-			Double derivative = derivativeFunction( neuron.getSumValue() );
+			Double derivative = derivativeFunction( neuron.getSumValue(), true );
 			// Double derivative = derivativeFunction(
 			// neuron.getActivationValue() );
 
@@ -210,7 +210,7 @@ public class BackpropagationMLP {
 				sum += deltaNextLayer * weight;
 			}
 
-			Double derivative = derivativeFunction( neuron.getSumValue() );
+			Double derivative = derivativeFunction( neuron.getSumValue(), false );
 			//Double derivative = derivativeFunction( neuron.getActivationValue() );
 
 			Double delta = (sum * derivative);
@@ -274,12 +274,15 @@ public class BackpropagationMLP {
 				layer.setNeuronsActivationValues( sample.getInput() );
 
 			} else {
-				calculateNeuronsValues( layer, layers.get( i - 1 ) );
+				boolean lastLayer = false;
+				if( i+1 == layers.size() )
+					lastLayer = true;
+				calculateNeuronsValues( layer, layers.get( i - 1 ), lastLayer );
 			}
 		}
 	}
 
-	public void calculateNeuronsValues( Layer currentLayer, Layer previousLayer ) {
+	public void calculateNeuronsValues( Layer currentLayer, Layer previousLayer, boolean lastLayer ) {
 
 		for ( int i = 0; i < currentLayer.getNeurons().size(); i++ ) {
 			Neuron neuron = currentLayer.getNeurons().get( i );
@@ -293,42 +296,53 @@ public class BackpropagationMLP {
 			sum += neuron.getBias();
 			neuron.setSumValue( sum );
 
-			Double activation = activationFunction( sum );
+			Double activation = activationFunction( sum, lastLayer );
 			neuron.setActivationValue( activation );
 		}
 
 	}
 
-	public Double derivativeFunction( Double value ) {
+	public Double derivativeFunction( Double value, boolean lastLayer ) {
 
 		Double result;
 
 		// tanh'
 		//result = Math.pow( 2.0 / (Math.exp( value ) + Math.exp( -value )),
 		//2.0 );
-		result = 1 - Math.pow(activationFunction( value ),2);
+		//result = 1 - Math.pow(activationFunction( value, lastLayer ),2);
 
 		// sigmoid'
 		// result = Math.exp( value ) / ( Math.pow( Math.exp( value ) + 1, 2 )
 		// );
 
 		// sigmoid'
-		//result = activationFunction( value )
-		//		* (1 - activationFunction( value ));
+		result = activationFunction( value, lastLayer )
+				* (1 - activationFunction( value, lastLayer ));
+		
+		// linear'
+		if( lastLayer )
+			result = 0.1;
 
 		return result;
 	}
 
-	public Double activationFunction( Double sum ) {
+	public Double activationFunction( Double sum, boolean lastLayer ) {
 
 		Double result;
 
 		// tanh
-		result = Math.tanh( sum );
-		//result = (double) Math.round( result );
+		//result = Math.tanh( sum );
+		//result = (double) Math.round( sum );
 
 		// sigmoid
-		//result = 1.0 / (1.0 + Math.exp( -sum ));
+		result = 1.0 / (1.0 + Math.exp( -sum ));
+		
+		// linear
+		//result = sum;
+		
+		if( lastLayer )
+			result = 0.1*sum;
+		
 
 		return result;
 	}
